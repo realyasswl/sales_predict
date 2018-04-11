@@ -64,12 +64,12 @@ def _initValues(mtype, ts, p, sp):
     initSeries = pd.Series(ts[:p * sp])
 
     if mtype == 'additive':
-        rawSeason = initSeries - pd.rolling_mean(initSeries, window=p, min_periods=p, center=True)
+        rawSeason = initSeries - initSeries.rolling(window=p, min_periods=p, center=True).mean()
         initSeason = [np.nanmean(rawSeason[i::p]) for i in range(p)]
         initSeason = pd.Series(initSeason) - np.mean(initSeason)
         deSeasoned = [initSeries[v] - initSeason[v % p] for v in range(len(initSeries))]
     else:
-        rawSeason = initSeries / pd.rolling_mean(initSeries, window=p, min_periods=p, center=True)
+        rawSeason = initSeries / initSeries.rolling(window=p, min_periods=p, center=True).mean()
         initSeason = [np.nanmean(rawSeason[i::p]) for i in range(p)]
         initSeason = pd.Series(initSeason) / math.pow(np.prod(np.array(initSeason)), 1 / p)
         deSeasoned = [initSeries[v] / initSeason[v % p] for v in range(len(initSeries))]
