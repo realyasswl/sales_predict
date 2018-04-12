@@ -45,12 +45,19 @@ def draw(training, item):
     sm.graphics.tsa.plot_pacf(diff, lags=52, ax=axes[1])
 
 
-def draw1(temp, testing, predictions, title):
+def draw1(temp, training, testing, predictions, gwfcst, title):
     print(title)
     fig, ax = plt.subplots(figsize=(13, 8))
     weeks = [i for i in range(len(temp) + len(predictions))]
-    ax.plot(weeks[len(temp):len(temp) + len(predictions)], predictions)
-    ax.plot(weeks[len(temp): len(temp) + len(testing)], testing)
-    ax.plot(weeks[:len(temp)], temp)
+    ax.plot(weeks[len(temp):len(temp) + len(predictions)], predictions, color="#123456", label="yh_pred")
+    ax.plot(weeks[len(temp): len(temp) + len(testing)], testing, color="#ab9641", label="ty_sale")
+    ax.plot(weeks[:len(temp)], temp, color="#e0e0e0", label="ly_sale")
+    ax.plot(weeks[:len(training)], training, color="#999999", label="training")
+    ax.plot(weeks[len(temp):len(temp) + len(gwfcst)], gwfcst, color="#f012e6", label="gw_pred")
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
     ax.set(title=title)
     fig.savefig(title)
+
+
+def float_list_2_string(flst, sprt=","):
+    return sprt.join(["{0:.0f}".format(f) for f in flst])

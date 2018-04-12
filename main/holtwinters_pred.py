@@ -7,14 +7,20 @@ al = 0.4
 be = 0.3
 ga = 0.9
 
+before_head = 0
+delay = 12
+fcst_len = 12
+
 if __name__ == '__main__':
     non_zero = 0
     for ind, item in enumerate(items):
-        # if item != 535386:
-        #     continue
+        if item != 506892:
+            continue
         # try:
         print("{1:d}]item[{0:d}]========================".format(item, ind))
         temp = [float(x) for x in result[item]]
+        if before_head > 0:
+            temp = temp[before_head:]
         zero = False
         zero_sum = 0
         for i in temp:
@@ -26,8 +32,14 @@ if __name__ == '__main__':
             continue
 
         non_zero = non_zero + 1
-        training = temp[:-12]
-        to_be_add = temp[-12:]
+        training = []
+        to_be_add = []
+        if delay > 0:
+            training = temp[:0 - delay]
+            to_be_add = temp[0 - delay:]
+        else:
+            training = temp[:]
+
         try:
             testing = [float(x) for x in sales[ind]]
         except ValueError:
@@ -36,8 +48,8 @@ if __name__ == '__main__':
         predictions = []
         print(testing)
 
-        predictions = holtWinters(training, 52, 3, 52, 'additive', alpha=al, beta=be, gamma=ga)["predicted"]
-        predictions = [x if x > 0 else 0 for x in predictions]
+        predictions = holtWinters(training, 52, 3, fcst_len, 'additive', alpha=al, beta=be, gamma=ga)["predicted"]
+        # predictions = [x if x > 0 else 0 for x in predictions]
         yhmape = mape(testing, predictions)
         yhsum = yhsum + yhmape
         yhssum = yhssum + yhmape * yhmape
@@ -47,7 +59,8 @@ if __name__ == '__main__':
         print("YH_MAPE[{0:.3f}]".format(yhmape), predictions[:len(testing)])
         print("GW_MAPE[{0:.3f}]".format(gwmape), gw_fcsting)
         print("================================================")
-        draw1(temp, testing, predictions, "{0:d}[{1:.2f}_{2:.2f}_{3:.2f}].png".format(item, al, be, ga))
+        draw1(temp, training, testing, predictions, gw_fcsting,
+              "{0:d}[{1:.2f}_{2:.2f}_{3:.2f}].png".format(item, al, be, ga))
 
         # break
         # except Exception as e:
