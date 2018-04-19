@@ -13,6 +13,7 @@ result = None
 items = None
 sales = None
 gw_fcst = None
+ty_sales_money = None
 
 base_folder = "D:\\work\\potential_ml\\greenworks\\py\\main\\{0:s}"
 
@@ -24,6 +25,8 @@ with open(base_folder.format('sales'), 'rb') as f:
     sales = pickle.load(f)
 with open(base_folder.format('gw_fcst'), 'rb') as f:
     gw_fcst = pickle.load(f)
+with open(base_folder.format('ty_sales_money'), 'rb') as f:
+    ty_sales_money = pickle.load(f)
 
 
 def draw(training, item):

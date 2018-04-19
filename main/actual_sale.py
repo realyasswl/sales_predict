@@ -34,7 +34,7 @@ def get_info(start_index):
 
 if __name__ == '__main__':
 
-    pipeline = load_workbook("D:\\deeplearning\\greenworks\\pipeline.xlsx")
+    pipeline = load_workbook("D:\\deeplearning\\greenworks\\pipeline_0413.xlsx")
     fcst = pipeline["Forecasting"]
     rows = list(fcst.rows)
     column_names = list(c.value for c in rows[1])
@@ -53,21 +53,24 @@ if __name__ == '__main__':
     lyas = "LY Acutal Sales"
     tyas = "TY Actual Sales"
     gwfcst = "GW Final POS Forecast"
+    ASP = "ASP"
 
     items = []
     sales = []
     gw_fcst = []
+    ty_sales_money = []
 
     curr = item_start
-    # BK to BQ, 2018/2/9 to 2018/3/23
+    # BK to BT, 2018/2/9 to 2018/4/13
     start_cell = 62
-    end_cell = 69
+    end_cell = 72
     while curr < len(rows):
         item = rows[curr][get_column("Lowe's Item")].value
         items.append(item)
 
         sales.append([cell.value for cell in rows[curr + get_row(tyas)][start_cell:end_cell]])
         gw_fcst.append([cell.value for cell in rows[curr + get_row(gwfcst)][start_cell:end_cell]])
+        ty_sales_money.append([cell.value for cell in rows[curr + get_row(ASP)][start_cell:end_cell]])
         curr = curr + item_rows
 
     print("load data 0")
@@ -97,3 +100,5 @@ if __name__ == '__main__':
 
     with open('gw_fcst', 'wb') as f:
         pickle.dump(gw_fcst, f)
+    with open('ty_sales_money', 'wb') as f:
+        pickle.dump(ty_sales_money, f)
