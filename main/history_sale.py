@@ -21,6 +21,16 @@ def mape(ori, pred):
     return 100 * abs_err / sum
 
 
+def punish_negative(ori, pred, negative_rate=3):
+    sum = 0
+    err = 0
+    for i in range(len(ori)):
+        sum = sum + ori[i]
+        diff = pred[i] - ori[i]
+        err = err + (diff if diff > 0 else negative_rate * (0 - diff))
+    return 100 * err / sum
+
+
 if __name__ == '__main__':
     performance = load_workbook("D:\\deeplearning\\greenworks\\performance.xlsx")
     # item_week:summed_number_per_week

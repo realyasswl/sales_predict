@@ -1,6 +1,6 @@
-from main.history_sale import mape, yhssum, yhsum, gwssum, gwsum
+from main.history_sale import punish_negative as mape, yhssum, yhsum, gwssum, gwsum
 from main.holtwinters import holtWinters
-from main import draw1, items, result, sales, gw_fcst, end_week_obj, df, float_list_2_string, ty_sales_money
+from main import draw1, items, result, sales, gw_fcst, end_week_obj, df, float_list_2_string, ty_sales_money, draw2
 import math
 from datetime import timedelta as td
 
@@ -9,11 +9,11 @@ step = 1 / 10
 
 before_head = 0
 delay = 12
-fcst_len = 12
-# ga = 0.9
-testing_len = 7
+fcst_len = 53
+ga = 0.9
+t_len = 0
 sprt = ","
-max_layer = 3
+max_layer = 2
 
 
 def recursive_optimal_param(training, testing, params, step=0.1, layer=0):
@@ -46,23 +46,23 @@ def recursive_optimal_param(training, testing, params, step=0.1, layer=0):
         for beta_i in range(len_b):
             be = b_lo + beta_i * step
 
-            for gamma_i in range(len_g):
-                ga = g_lo + gamma_i * step
-                predictions = holtWinters(training, 52, 3, fcst_len, 'additive', alpha=al, beta=be, gamma=ga)[
-                    "predicted"]
+            # for gamma_i in range(len_g):
+            #     ga = g_lo + gamma_i * step
+            predictions = holtWinters(training, 52, 3, fcst_len, 'additive', alpha=al, beta=be, gamma=ga)[
+                "predicted"]
 
-                yhmape = mape(testing, predictions)
-                if best_yhmape == 0 or best_yhmape > yhmape:
-                    best_yhmape = yhmape
-                    best_al = al
-                    best_be = be
-                    best_ga = ga
-                    best_pred = predictions
+            yhmape = mape(testing, predictions)
+            if best_yhmape == 0 or best_yhmape > yhmape:
+                best_yhmape = yhmape
+                best_al = al
+                best_be = be
+                best_ga = ga
+                best_pred = predictions
 
     print(
         "Item [{3:d}] {4:f}: alpha:{0:f}, beta:{1:f}, gamma {2:f}".format(best_al, best_be, best_ga, item, best_yhmape))
     if layer == max_layer:
-        return (best_al, best_be, best_ga, best_pred, best_yhmape)
+        return best_al, best_be, best_ga, best_pred, best_yhmape
     else:
         return recursive_optimal_param(training, testing, (best_al, best_be, best_ga), step=step / 10, layer=layer + 1)
 
@@ -77,6 +77,8 @@ if __name__ == '__main__':
         for ind, item in enumerate(items):
             # if item != 535389:
             #     continue
+
+            # prepare data begins
             temp = [float(x) for x in result[item]]
             if before_head > 0:
                 temp = temp[before_head:]
@@ -100,41 +102,42 @@ if __name__ == '__main__':
             else:
                 training = temp[:]
             try:
-                testing = [float(x) for x in sales[ind]][:testing_len]
+                testing = [float(x) for x in sales[ind]][:t_len] if t_len > 0 else [float(x) for x in sales[ind]]
             except ValueError:
                 continue
             gw_fcsting = gw_fcst[ind][:]
             predictions = []
             print(testing)
             sales_dollar = ty_sales_money[ind]
+            # prepare data ends
 
+            # output best predict, parameter, model and result
             best_al, best_be, best_ga, best_pred, best_yhmape = recursive_optimal_param(training, testing, ())
             print("Item [{3:d}] {4:f}: alpha:{0:f}, beta:{1:f}, gamma {2:f}".format(best_al, best_be, best_ga, item,
                                                                                     best_yhmape))
+
+            # compute mape
             yhsum = yhsum + best_yhmape
             yhssum = yhssum + best_yhmape * best_yhmape
             gwmape = mape(testing, gw_fcsting)
             gwsum = gwsum + gwmape
             gwssum = gwssum + gwmape * gwmape
-            write_file.write("{2:d},Actual_Sale,{0:.3f},{1:s}".format(0, float_list_2_string(testing), item))
-            write_file.write("\n")
 
+            # output report
+            write_file.write("{2:d},Actual_Sale,{0:.3f},{1:s}\n".format(0, float_list_2_string(testing), item))
             write_file.write(
-                "{2:d},YH_forecast,{0:.3f},{1:s}".format(best_yhmape, float_list_2_string(best_pred), item))
-            write_file.write("\n")
-
-            write_file.write(
-                "{2:d},GW_forecast,{0:.3f},{1:s}".format(gwmape, float_list_2_string(gw_fcsting), item))
-            write_file.write("\n")
-
+                "{2:d},YH_forecast,{0:.3f},{1:s}\n".format(best_yhmape, float_list_2_string(best_pred), item))
+            write_file.write("{2:d},GW_forecast,{0:.3f},{1:s}\n".format(gwmape, float_list_2_string(gw_fcsting), item))
             total_sale_dollar = 0
             for i in range(len(testing)):
                 total_sale_dollar = total_sale_dollar + testing[i] * sales_dollar[i]
-            write_file.write(
-                "{2:d},TY_ASP$,{0:.3f},{1:s}".format(0, float_list_2_string(sales_dollar), item))
-            write_file.write("\n")
+            write_file.write("{2:d},TY_ASP$,{0:.3f},{1:s}\n".format(0, float_list_2_string(sales_dollar), item))
 
+            # draw visualization
             draw1(temp, training, testing, best_pred, gw_fcsting, "{0:d}_optimal.png".format(item))
+
+            # monthly error
+            # draw2("{0:d}_monthly_err.png".format(item), testing, {"yh": best_pred, "gw": gw_fcsting}, 4, week=fcst_len)
 
         print(non_zero)
         print(non_zero_items)
