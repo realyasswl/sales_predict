@@ -15,6 +15,30 @@ t_len = 0
 sprt = ","
 max_layer = 2
 
+param_filepath = "d:\\work\\potential_ml\\greenworks\\py\\param_file"
+
+
+def read_params():
+    params_dict = {}
+    try:
+        with open(param_filepath, "r") as param_file:
+            lines = param_file.readlines()
+            for line in lines:
+                if len(line) == 0:
+                    continue
+                strs = line.split(",")
+                params_dict[int(strs[0])] = (float(strs[1]), float(strs[2]), float(strs[3]))
+    except:
+        print("read_params error, return empty dict")
+    return params_dict
+
+
+def store_params(params_dict):
+    with open(param_filepath, "w") as param_file:
+        for k, v in params_dict.items():
+            a, b, g = v
+            param_file.write("{0:d},{1:f},{2:f},{3:f}\n".format(k, a, b, g))
+
 
 def recursive_optimal_param(training, testing, params, step=0.1, layer=0):
     if step == 0.1:
@@ -70,6 +94,8 @@ def recursive_optimal_param(training, testing, params, step=0.1, layer=0):
 if __name__ == '__main__':
     non_zero = 0
     non_zero_items = []
+    param_dict = read_params()
+    calc_param = len(param_dict) == 0
     with open("report.csv", "w") as write_file:
         write_file.write("item,title,MAPE,sum,{0:s}\n".
                          format(sprt.join([(end_week_obj + td(weeks=x + 1)).strftime(df) for x in range(fcst_len)])))
@@ -112,7 +138,12 @@ if __name__ == '__main__':
             # prepare data ends
 
             # output best predict, parameter, model and result
-            best_al, best_be, best_ga, best_pred, best_yhmape = recursive_optimal_param(training, testing, ())
+            if calc_param:
+                best_al, best_be, best_ga, best_pred, best_yhmape = recursive_optimal_param(training, testing, ())
+            else:
+                best_al, best_be, best_ga = param_dict[item]
+                best_pred = holtWinters(training, 52, 3, fcst_len, 'additive', best_al, best_be, best_ga)["predicted"]
+                best_yhmape = mape(testing, best_pred)
             print("Item [{3:d}] {4:f}: alpha:{0:f}, beta:{1:f}, gamma {2:f}".format(best_al, best_be, best_ga, item,
                                                                                     best_yhmape))
 
@@ -137,8 +168,13 @@ if __name__ == '__main__':
             draw1(temp, training, testing, best_pred, gw_fcsting, "{0:d}_optimal.png".format(item))
 
             # monthly error
-            # draw2("{0:d}_monthly_err.png".format(item), testing, {"yh": best_pred, "gw": gw_fcsting}, 4, week=fcst_len)
+            draw2("{0:d}_monthly_err.png".format(item), testing, {"yh": best_pred, "gw": gw_fcsting}, 4, week=fcst_len)
 
+            if calc_param:
+                param_dict[item] = (best_al, best_be, best_ga)
         print(non_zero)
         print(non_zero_items)
         print(yhsum, gwsum, yhssum, gwssum)
+
+    if calc_param:
+        store_params(param_dict)
